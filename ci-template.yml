@@ -3,20 +3,21 @@
 # Include this in your project's .gitlab-ci.yml:
 #
 #   include:
-#     - project: 'webileapps/tools/scanner'
+#     - project: 'webileapps/ai-native-delivery/scanner'
 #       ref: main
 #       file: 'ci-template.yml'
 #
 # Then set these CI/CD variables in your project settings
 # (Settings → CI/CD → Variables):
 #
+#   NPM_READ_TOKEN        — Deploy token with read_package_registry (from scanner project)
 #   GOOGLE_CHAT_WEBHOOK   — Google Chat incoming webhook URL for your project channel
 #   SMTP_HOST             — SMTP server host (or leave blank if using Resend)
 #   SMTP_PORT             — SMTP port (default: 587)
 #   SMTP_USER             — SMTP username
 #   SMTP_PASS             — SMTP password
 #   RESEND_API_KEY        — Resend API key (alternative to SMTP)
-#   GITLAB_SCAN_TOKEN     — GitLab PAT with read_api + read_user for member email lookup
+#   GITLAB_SCAN_TOKEN     — GitLab Project Access Token with read_api scope
 #
 # The PDF is uploaded as a CI artifact and also emailed to project members.
 
@@ -27,10 +28,10 @@ project-health-scan:
     - if: '$CI_PIPELINE_SOURCE == "push"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
   before_script:
-    # Authenticate with the private GitLab npm registry
+    # Authenticate with the private GitLab npm registry using the read deploy token
     - |
-      npm config set "@webileapps:registry" "https://${CI_SERVER_HOST}/api/v4/packages/npm/"
-      npm config set "//${CI_SERVER_HOST}/api/v4/packages/npm/:_authToken" "${CI_JOB_TOKEN}"
+      npm config set "@webileapps:registry" "https://${CI_SERVER_HOST}/api/v4/projects/857/packages/npm/"
+      npm config set "//git.webileapps.com/api/v4/projects/857/packages/npm/:_authToken" "${NPM_READ_TOKEN}"
     - npm install -g @webileapps/scan
   script:
     - scan . --ci --report-dir reports
