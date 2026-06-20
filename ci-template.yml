@@ -39,6 +39,17 @@ project-health-scan:
       fi
       nvm use 20
       echo "Runtime: Node $(node --version), npm $(npm --version)"
+    # Show which notification variables are configured (values stay masked)
+    - |
+      echo "=== Notification variable check ==="
+      [ -n "$GITLAB_SCAN_TOKEN" ]   && echo "  GITLAB_SCAN_TOKEN   : SET" || echo "  GITLAB_SCAN_TOKEN   : NOT SET (member lookup will be skipped)"
+      [ -n "$GOOGLE_CHAT_WEBHOOK" ] && echo "  GOOGLE_CHAT_WEBHOOK : SET" || echo "  GOOGLE_CHAT_WEBHOOK : NOT SET (Google Chat notification will be skipped)"
+      [ -n "$SMTP_HOST" ]           && echo "  SMTP_HOST           : SET" || echo "  SMTP_HOST           : NOT SET"
+      [ -n "$SMTP_USER" ]           && echo "  SMTP_USER           : SET" || echo "  SMTP_USER           : NOT SET"
+      [ -n "$SMTP_PASS" ]           && echo "  SMTP_PASS           : SET" || echo "  SMTP_PASS           : NOT SET"
+      [ -n "$RESEND_API_KEY" ]      && echo "  RESEND_API_KEY      : SET" || echo "  RESEND_API_KEY      : NOT SET"
+      [ -n "$MAIL_FROM" ]           && echo "  MAIL_FROM           : SET" || echo "  MAIL_FROM           : NOT SET"
+      echo "==================================="
     # Route @webileapps packages to the private registry
     - |
       npm config set "@webileapps:registry" "https://${CI_SERVER_HOST}/api/v4/projects/857/packages/npm/"
@@ -63,11 +74,3 @@ project-health-scan:
     when: always
   # Allow exit code 2 (score below threshold) without blocking the pipeline.
   allow_failure: true
-  variables:
-    SMTP_HOST: $SMTP_HOST
-    SMTP_PORT: $SMTP_PORT
-    SMTP_USER: $SMTP_USER
-    SMTP_PASS: $SMTP_PASS
-    RESEND_API_KEY: $RESEND_API_KEY
-    GOOGLE_CHAT_WEBHOOK: $GOOGLE_CHAT_WEBHOOK
-    GITLAB_TOKEN: $GITLAB_SCAN_TOKEN
