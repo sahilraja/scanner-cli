@@ -57,8 +57,10 @@ project-health-scan:
     # Install into a user-writable prefix (shell runners run without sudo)
     - export NPM_CONFIG_PREFIX="${HOME}/.npm-global"
     - export PATH="${HOME}/.npm-global/bin:${PATH}"
-    - npm uninstall -g @webileapps/scan 2>/dev/null || true
-    - npm install -g @webileapps/scan@latest
+    # Clear npm cache and force fresh fetch from registry
+    - npm cache clean --force
+    - rm -rf "${HOME}/.npm-global" 2>/dev/null || true
+    - npm install -g @webileapps/scan@latest --no-save
   script:
     - scan . --ci --report-dir reports
   after_script:
