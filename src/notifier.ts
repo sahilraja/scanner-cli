@@ -199,7 +199,6 @@ export async function sendGoogleChat(
 
   const artifactUrl = ciArtifactUrl();
 
-  // Build widgets array — scores paragraph + optional PDF button
   const widgets: object[] = [
     {
       textParagraph: {
@@ -208,32 +207,29 @@ export async function sendGoogleChat(
     },
   ];
 
-  if (artifactUrl) {
-    widgets.push({
-      buttonList: {
-        buttons: [
-          {
-            text: "📄 Download PDF Report",
-            onClick: { openLink: { url: artifactUrl } },
-          },
-        ],
-      },
-    });
-  }
-
   const payload = {
-    cardsV2: [
+    cards: [
       {
-        cardId: "health-report",
-        card: {
-          header: {
-            title: `${gradeEmoji} ${signals.project_name} Health Report`,
-            subtitle: `Grade ${scoring.grade}  ·  ${scoring.health_score}/100  ·  ${scoring.verdict.replace("_", " ")}`,
-            imageUrl: "https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/health_and_safety/default/48px.svg",
-            imageType: "CIRCLE",
-          },
-          sections: [{ widgets }],
+        header: {
+          title: `${gradeEmoji} ${signals.project_name} Health Report`,
+          subtitle: `Grade ${scoring.grade}  ·  ${scoring.health_score}/100  ·  ${scoring.verdict.replace("_", " ")}`,
+          imageUrl: "https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/health_and_safety/default/48px.svg",
         },
+        sections: [
+          { widgets },
+          ...(artifactUrl
+            ? [{
+                widgets: [{
+                  buttons: [{
+                    textButton: {
+                      text: "📄 Download PDF Report",
+                      onClick: { openLink: { url: artifactUrl } },
+                    },
+                  }],
+                }],
+              }]
+            : []),
+        ],
       },
     ],
   };
