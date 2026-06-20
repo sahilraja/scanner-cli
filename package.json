@@ -1,6 +1,6 @@
 {
   "name": "@webileapps/scan",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Local project health scanner — generates PDF reports, emails teams, and posts to Google Chat",
   "bin": {
     "scan": "./dist/bin/scan.js"
