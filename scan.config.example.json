@@ -1,0 +1,40 @@
+{
+  "name": "My Project",
+  "description": "Short description shown in the PDF header",
+
+  "gitlab": {
+    "baseUrl": "https://git.webileapps.com",
+    "projectId": 123,
+    "token": "${GITLAB_TOKEN}"
+  },
+
+  "frd": {
+    "dir": "specs",
+    "pattern": "**/*.md"
+  },
+
+  "notify": {
+    "email": {
+      "from": "scanner@webileapps.com",
+      "extraRecipients": ["cto@webileapps.com"],
+
+      "smtp": {
+        "host": "${SMTP_HOST}",
+        "port": 587,
+        "user": "${SMTP_USER}",
+        "pass": "${SMTP_PASS}"
+      }
+    },
+
+    "googleChat": {
+      "webhookUrl": "${GOOGLE_CHAT_WEBHOOK}"
+    }
+  },
+
+  "scan": {
+    "exclude": ["node_modules", "dist", "build", ".git", ".next", "coverage"],
+    "reportDir": "reports",
+    "maxFileSizeBytes": 524288,
+    "failBelow": 50
+  }
+}

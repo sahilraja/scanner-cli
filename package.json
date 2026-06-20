@@ -1,0 +1,33 @@
+{
+  "name": "@webileapps/scan",
+  "version": "1.0.0",
+  "description": "Local project health scanner — generates PDF reports, emails teams, and posts to Google Chat",
+  "bin": {
+    "scan": "./dist/bin/scan.js"
+  },
+  "main": "./dist/src/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/bin/scan.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "registry": "https://git.webileapps.com/api/v4/projects/857/packages/npm/"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.16",
+    "pdfkit": "^0.15.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/nodemailer": "^6.4.16",
+    "@types/pdfkit": "^0.13.4",
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,62 @@
+# @webileapps/scan — GitLab CI template
+#
+# Include this in your project's .gitlab-ci.yml:
+#
+#   include:
+#     - project: 'webileapps/tools/scanner'
+#       ref: main
+#       file: 'ci-template.yml'
+#
+# Then set these CI/CD variables in your project settings
+# (Settings → CI/CD → Variables):
+#
+#   GOOGLE_CHAT_WEBHOOK   — Google Chat incoming webhook URL for your project channel
+#   SMTP_HOST             — SMTP server host (or leave blank if using Resend)
+#   SMTP_PORT             — SMTP port (default: 587)
+#   SMTP_USER             — SMTP username
+#   SMTP_PASS             — SMTP password
+#   RESEND_API_KEY        — Resend API key (alternative to SMTP)
+#   GITLAB_SCAN_TOKEN     — GitLab PAT with read_api + read_user for member email lookup
+#
+# The PDF is uploaded as a CI artifact and also emailed to project members.
+
+project-health-scan:
+  stage: test
+  image: node:20-alpine
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+  before_script:
+    # Authenticate with the private GitLab npm registry
+    - |
+      npm config set "@webileapps:registry" "https://${CI_SERVER_HOST}/api/v4/packages/npm/"
+      npm config set "//${CI_SERVER_HOST}/api/v4/packages/npm/:_authToken" "${CI_JOB_TOKEN}"
+    - npm install -g @webileapps/scan
+  script:
+    - scan . --ci --report-dir reports
+  after_script:
+    # Print a one-line summary even if the scan fails (exit code 2)
+    - |
+      if [ -f reports/health-report.pdf ]; then
+        echo "Health report generated: reports/health-report.pdf"
+      fi
+  artifacts:
+    name: "health-report-${CI_PROJECT_NAME}-${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - reports/health-report.pdf
+      - reports/health-report-*.pdf
+    expire_in: 30 days
+    when: always
+  # Allow exit code 2 (score below threshold) without blocking the pipeline.
+  # Change `allow_failure: true` to `allow_failure: false` to block on low scores.
+  allow_failure: true
+  variables:
+    # These are forwarded from project CI/CD variables automatically;
+    # listing them here makes the dependency explicit for auditors.
+    SMTP_HOST: $SMTP_HOST
+    SMTP_PORT: $SMTP_PORT
+    SMTP_USER: $SMTP_USER
+    SMTP_PASS: $SMTP_PASS
+    RESEND_API_KEY: $RESEND_API_KEY
+    GOOGLE_CHAT_WEBHOOK: $GOOGLE_CHAT_WEBHOOK
+    GITLAB_TOKEN: $GITLAB_SCAN_TOKEN
