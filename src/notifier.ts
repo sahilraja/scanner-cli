@@ -162,6 +162,13 @@ export async function sendEmail(
 
 // ── Google Chat ────────────────────────────────────────────────────────────────
 
+function ciArtifactUrl(): string | null {
+  const projectUrl = process.env.CI_PROJECT_URL;
+  const jobId = process.env.CI_JOB_ID;
+  if (!projectUrl || !jobId) return null;
+  return `${projectUrl}/-/jobs/${jobId}/artifacts/file/reports/health-report.pdf`;
+}
+
 export async function sendGoogleChat(
   signals: CliSignals,
   scoring: ScoringResult,
@@ -170,7 +177,6 @@ export async function sendGoogleChat(
   const webhookUrl = config.notify?.googleChat?.webhookUrl;
   if (!webhookUrl) return;
 
-  const color = scoring.verdict === "healthy" ? "#16A34A" : scoring.verdict === "needs_attention" ? "#D97706" : "#DC2626";
   const gradeEmoji = scoring.grade === "A" ? "✅" : scoring.grade === "B" ? "🟢" : scoring.grade === "C" ? "🟡" : "🔴";
 
   const criticalItems: string[] = [];
@@ -182,34 +188,52 @@ export async function sendGoogleChat(
   const scoreLines = Object.entries(scoring.scores)
     .map(([dim, ds]) => {
       const icon = ds.score >= 7.5 ? "🟢" : ds.score >= 5.5 ? "🟡" : "🔴";
-      const label = dim.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase());
-      return `${icon} ${label}: ${ds.score.toFixed(1)}/10`;
+      const label = dim.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+      return `${icon} <b>${label}:</b> ${ds.score.toFixed(1)}/10`;
     })
-    .join("\n");
+    .join("<br>");
 
-  const text = [
-    `*${gradeEmoji} ${signals.project_name} — Health Report*`,
-    `Grade: *${scoring.grade}*  |  Score: *${scoring.health_score}/100*`,
-    "",
-    scoreLines,
-    criticalItems.length > 0 ? "\n*Action Required:*\n" + criticalItems.map((i) => `• ${i}`).join("\n") : "",
-    "",
-    `_Scanned ${new Date(signals.scanned_at).toLocaleString()}_`,
-  ].filter(Boolean).join("\n");
+  const criticalHtml = criticalItems.length > 0
+    ? `<br><b>⚠️ Action Required:</b><br>${criticalItems.map((i) => `• ${i}`).join("<br>")}`
+    : "";
 
-  const payload = {
-    cards: [
-      {
-        header: {
-          title: `${signals.project_name} Health Report`,
-          subtitle: `Grade ${scoring.grade} — ${scoring.health_score}/100`,
-          imageUrl: "https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/health_and_safety/default/48px.svg",
-        },
-        sections: [
+  const artifactUrl = ciArtifactUrl();
+
+  // Build widgets array — scores paragraph + optional PDF button
+  const widgets: object[] = [
+    {
+      textParagraph: {
+        text: `${scoreLines}${criticalHtml}<br><i>Scanned ${new Date(signals.scanned_at).toLocaleString()}</i>`,
+      },
+    },
+  ];
+
+  if (artifactUrl) {
+    widgets.push({
+      buttonList: {
+        buttons: [
           {
-            widgets: [{ textParagraph: { text: text.replace(/\*/g, "<b>").replace(/\*/g, "</b>") } }],
+            text: "📄 Download PDF Report",
+            onClick: { openLink: { url: artifactUrl } },
           },
         ],
+      },
+    });
+  }
+
+  const payload = {
+    cardsV2: [
+      {
+        cardId: "health-report",
+        card: {
+          header: {
+            title: `${gradeEmoji} ${signals.project_name} Health Report`,
+            subtitle: `Grade ${scoring.grade}  ·  ${scoring.health_score}/100  ·  ${scoring.verdict.replace("_", " ")}`,
+            imageUrl: "https://fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/health_and_safety/default/48px.svg",
+            imageType: "CIRCLE",
+          },
+          sections: [{ widgets }],
+        },
       },
     ],
   };
@@ -221,9 +245,11 @@ export async function sendGoogleChat(
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      process.stderr.write(`[scan] Google Chat webhook returned ${res.status}\n`);
+      const body = await res.text().catch(() => "");
+      process.stderr.write(`[scan] Google Chat webhook returned ${res.status}: ${body}\n`);
     } else {
-      process.stdout.write("[scan] Google Chat notification sent\n");
+      const note = artifactUrl ? " (with PDF download button)" : "";
+      process.stdout.write(`[scan] Google Chat notification sent${note}\n`);
     }
   } catch (e) {
     process.stderr.write(`[scan] Google Chat send failed: ${(e as Error).message}\n`);
