@@ -24,6 +24,8 @@
 project-health-scan:
   stage: test
   image: node:20-alpine
+  tags:
+    - work-shell
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push"'
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
