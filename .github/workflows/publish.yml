@@ -1,0 +1,45 @@
+name: Publish to GitHub Packages (secondary registry)
+
+# This is a secondary publish target alongside the existing GitLab registry
+# (see .gitlab-ci.yml / publishConfig in package.json, which stay GitLab-primary).
+# We don't rename the package in package.json — instead we temporarily rescope
+# it to @sahilraja/scan just for this CI run so GitHub Packages accepts it
+# (GitHub Packages requires the scope to match the repo owner). Nothing here
+# is committed back to the repo.
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v*.*.*"
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://npm.pkg.github.com
+          scope: "@sahilraja"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Rescope package name for GitHub Packages (local only, not committed)
+        run: npm pkg set name="@sahilraja/scan"
+
+      - name: Publish to GitHub Packages
+        run: npm publish --registry https://npm.pkg.github.com
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
