@@ -5,7 +5,7 @@ import { loadConfig, getReportDir } from "../src/config";
 import { walkLocalDirectory, getLatestMtime } from "../src/local-walker";
 import { runScanners } from "../src/scanners";
 import { computeScores } from "../src/scoring";
-import { generatePdf } from "../src/pdf-report";
+import { generatePdf } from "../src/pdf-export";
 import { parseFrdDirectory } from "../src/frd-parser";
 import { resolveRecipients } from "../src/gitlab-members";
 import { notify } from "../src/notifier";
@@ -92,7 +92,7 @@ async function runScan(projectDir: string, opts: {
 
   // ── PDF ───────────────────────────────────────────────────────────────────
   fs.mkdirSync(reportDir, { recursive: true });
-  const pdfBuffer = await generatePdf(signals, scoring, frd);
+  const pdfBuffer = await generatePdf(signals, scoring, signals.languages);
 
   const dateStr = new Date(signals.scanned_at).toISOString().slice(0, 10);
   const safeName = projectName.replace(/[^a-z0-9]/gi, "-").toLowerCase();

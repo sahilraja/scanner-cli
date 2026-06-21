@@ -73,7 +73,14 @@ export type PackageJsonSignals = {
 export type ContentSignals = {
   totals: {
     by_rule: Record<string, number>;
+    critical?: number;
+    warning?: number;
+    suggestion?: number;
   };
+  loc?: { total: number; median: number; p95: number; very_long: number };
+  longest_files?: Array<{ file: string; lines: number }>;
+  hits?: Array<{ severity: string; file: string; line: number; title: string; evidence: string }>;
+  files_scanned?: number;
   secret_hits: Array<{ file: string; line: number; rule: string; snippet: string }>;
 };
 
