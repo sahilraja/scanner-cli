@@ -13,6 +13,11 @@ import type {
   RouteSignals,
   DepSignals,
 } from "./types";
+import { scanRepoSchema } from "../../../src/lib/repo-schema-scan";
+import { scanRepoLayering } from "../../../src/lib/repo-layering-scan";
+import { scanRepoTestMap } from "../../../src/lib/repo-test-map-scan";
+import { scanRepoRoutes } from "../../../src/lib/repo-route-scan";
+import type { ExtractedRepo } from "../../../src/lib/archive-walker";
 
 function getGitInfo(rootDir: string): { branch: string | null; commit: string | null; origin: string | null } {
   try {
@@ -133,10 +138,10 @@ export function runScanners(repo: LocalRepo, projectName: string): CliSignals & 
     modules: scanModules(repo.rootDir, repo.files),
 
     // Real project scanners - exact mr-analyzer findings
-    db_schema: scanDatabaseSchema(repo.rootDir, repo.files),
-    layering: scanLayering(repo.rootDir, repo.files),
-    test_map: scanTestMap(repo.rootDir, repo.files),
-    routes: scanRoutes(repo.rootDir, repo.files),
+    db_schema: scanDatabaseSchema(repo),
+    layering: scanLayering(repo),
+    test_map: scanTestMap(repo),
+    routes: scanRoutes(repo),
 
     env_vars_used: 0,
     env_vars_undocumented: 0,
@@ -336,135 +341,154 @@ const CVE_DATABASE = [
   { id: "GHSA-4xcr-6qrr-mgjj", pkg: "snyk", severity: "low", summary: "Sensitive data in error messages", desc: "snyk CLI < 1.700.0 may leak tokens in error messages" },
 ];
 
-function scanDatabaseSchema(rootDir: string, files: string[]): any {
-  // Match mr-analyzer's exact database schema findings
-  const sqlFiles = files.filter((f) => /\.(sql|prisma|graphql)$/.test(f));
-  const findings: any[] = [];
-  const strengths: any[] = [];
+function scanDatabaseSchema(repo: any): any {
+  try {
+    const schemaSignals = scanRepoSchema(repo);
+    const findings: any[] = [];
+    const strengths: any[] = [];
 
-  // Exact finding from reference: 33 FK fields without indexes
-  if (sqlFiles.length > 0 || files.some((f) => f.includes("prisma"))) {
-    findings.push({
-      type: "missing-index",
-      severity: "warning",
-      message: "33 field(s) look like FK / lookup but have no index",
-      impact: -1.5,
-      category: "performance",
-      scanner: "db-schema",
-    });
+    // Generate findings based on actual schema analysis
+    if (schemaSignals.unindexed_lookup_fields.length > 0) {
+      findings.push({
+        type: "missing-index",
+        severity: "warning",
+        message: `${schemaSignals.unindexed_lookup_fields.length} field(s) look like FK / lookup but have no index`,
+        impact: -1.5,
+        category: "performance",
+        scanner: "db-schema",
+      });
+    }
 
-    // Exact strength from reference: All tables have non-PK indexes
-    strengths.push({
-      type: "all-tables-indexed",
-      message: "All 33 tables have at least one non-PK index",
-      impact: 0.8,
-      category: "performance",
-      scanner: "db-schema",
-    });
-  }
+    // Strength: tables with indexes
+    if (schemaSignals.models_found > 0) {
+      const indexed = schemaSignals.models.filter((m: any) => m.has_non_pk_index).length;
+      if (indexed === schemaSignals.models_found) {
+        strengths.push({
+          type: "all-tables-indexed",
+          message: `All ${schemaSignals.models_found} tables have at least one non-PK index`,
+          impact: 0.8,
+          category: "performance",
+          scanner: "db-schema",
+        });
+      }
+    }
 
-  return {
-    findings,
-    strengths,
-    total_tables: 33,
-    total_indexes: 33,
-  };
-}
-
-function scanLayering(rootDir: string, files: string[]): any {
-  // Match mr-analyzer's exact layering findings
-  const srcFiles = files.filter((f) => f.startsWith("src/") && /\.(ts|tsx|js)$/.test(f));
-
-  if (srcFiles.length > 0) {
     return {
-      findings: [
-        {
-          type: "import-violations",
-          severity: "info",
-          message: "19 layering-rule violations across rules: frontend-imports-backend(19)",
-          impact: -1.06,
-          category: "code_quality",
-          scanner: "layering",
-        },
-        {
-          type: "import-cycles",
-          severity: "info",
-          message: "21 suspected two-file import cycle(s)",
-          impact: -0.6,
-          category: "code_quality",
-          scanner: "layering",
-        },
-      ],
-      violations: [
-        { type: "frontend-imports-backend", count: 19 },
-      ],
-      total_violations: 19,
-      import_cycles: 21,
+      findings,
+      strengths,
+      total_tables: schemaSignals.models_found,
+      total_indexes: schemaSignals.total_indexes,
     };
+  } catch (e) {
+    return { findings: [], strengths: [], total_tables: 0, total_indexes: 0 };
   }
-
-  return {
-    findings: [],
-    violations: [],
-    total_violations: 0,
-    import_cycles: 0,
-  };
 }
 
-function scanTestMap(rootDir: string, files: string[]): any {
-  // Match mr-analyzer's exact test map findings
-  const srcFiles = files.filter((f) => f.startsWith("src/") && /\.(ts|tsx|js)$/.test(f));
+function scanLayering(repo: any): any {
+  try {
+    const layeringSignals = scanRepoLayering(repo);
+    const findings: any[] = [];
+    const totalViolations = layeringSignals.violations.length;
 
-  if (srcFiles.length > 0) {
+    // Generate findings based on actual layering analysis
+    if (totalViolations > 0) {
+      const violationsByRule = Object.entries(layeringSignals.by_rule)
+        .map(([rule, count]) => `${rule}(${count})`)
+        .join(", ");
+      findings.push({
+        type: "import-violations",
+        severity: "info",
+        message: `${totalViolations} layering-rule violations across rules: ${violationsByRule}`,
+        impact: -1.06,
+        category: "code_quality",
+        scanner: "layering",
+      });
+    }
+
+    if (layeringSignals.suspected_cycles && layeringSignals.suspected_cycles > 0) {
+      findings.push({
+        type: "import-cycles",
+        severity: "info",
+        message: `${layeringSignals.suspected_cycles} suspected two-file import cycle(s)`,
+        impact: -0.6,
+        category: "code_quality",
+        scanner: "layering",
+      });
+    }
+
     return {
-      findings: [
-        {
-          type: "untested-modules",
-          severity: "warning",
-          message: "4 module(s) with 10+ source files and zero tests",
-          impact: -0.8,
-          category: "code_quality",
-          scanner: "test-map",
-        },
-      ],
-      untested_modules: 4,
+      findings,
+      violations: layeringSignals.violations || [],
+      total_violations: totalViolations,
+      import_cycles: layeringSignals.suspected_cycles || 0,
     };
+  } catch (e) {
+    return { findings: [], violations: [], total_violations: 0, import_cycles: 0 };
   }
-
-  return {
-    findings: [],
-    untested_modules: 0,
-  };
 }
 
-function scanRoutes(rootDir: string, files: string[]): any {
-  // Match mr-analyzer's exact route findings
-  const srcFiles = files.filter((f) => f.startsWith("src/") && /\.(ts|tsx|js)$/.test(f));
+function scanTestMap(repo: any): any {
+  try {
+    const testMapSignals = scanRepoTestMap(repo);
+    const findings: any[] = [];
 
-  if (srcFiles.length > 0) {
+    // Generate findings based on actual test map analysis
+    const untestedCount = testMapSignals.test_deserts ? testMapSignals.test_deserts.length : 0;
+
+    if (untestedCount > 0) {
+      findings.push({
+        type: "untested-modules",
+        severity: "warning",
+        message: `${untestedCount} module(s) with 10+ source files and zero tests`,
+        impact: -0.8,
+        category: "code_quality",
+        scanner: "test-map",
+      });
+    }
+
     return {
-      findings: [
-        {
+      findings,
+      untested_modules: untestedCount,
+    };
+  } catch (e) {
+    return { findings: [], untested_modules: 0 };
+  }
+}
+
+function scanRoutes(repo: any): any {
+  try {
+    const routeSignals = scanRepoRoutes(repo);
+    const findings: any[] = [];
+
+    // Generate findings based on actual route analysis
+    if (routeSignals.routes_without_validate && routeSignals.routes_without_validate > 0) {
+      const writeRoutes = routeSignals.routes.filter((r: any) =>
+        ['POST', 'PUT', 'PATCH', 'DELETE'].includes(r.method)
+      );
+      if (writeRoutes.length > 0) {
+        findings.push({
           type: "unvalidated-endpoints",
           severity: "info",
-          message: "43/43 write endpoints lack input validation",
+          message: `${writeRoutes.length}/${writeRoutes.length} write endpoints lack input validation`,
           impact: -0.6,
           category: "code_quality",
           scanner: "routes",
-        },
-      ],
-      total_routes: 43,
-      write_endpoints: 43,
-      validated_endpoints: 0,
-      routes: [],
-    };
-  }
+        });
+      }
+    }
 
-  return {
-    findings: [],
-    total_routes: 0,
-    routes: [],
-  };
+    return {
+      findings,
+      total_routes: routeSignals.total_routes || 0,
+      write_endpoints: routeSignals.routes.filter((r: any) =>
+        ['POST', 'PUT', 'PATCH', 'DELETE'].includes(r.method)
+      ).length || 0,
+      validated_endpoints: routeSignals.routes_covered_by_tests || 0,
+      routes: routeSignals.routes || [],
+    };
+  } catch (e) {
+    return { findings: [], total_routes: 0, write_endpoints: 0, validated_endpoints: 0, routes: [] };
+  }
 }
 
 function scanVulnerabilities(rootDir: string): any {

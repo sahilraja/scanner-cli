@@ -41,11 +41,11 @@ export async function generatePdf(
     health_score: scoring.health_score,
     grade: scoring.grade,
     worst_dimension: scoring.worst_dimension,
-    code_quality: scoring.code_quality,
-    security: scoring.security,
-    performance: scoring.performance,
-    test_coverage: scoring.test_coverage,
-    readability: scoring.readability,
+    code_quality: scoring.scores?.code_quality?.score,
+    security: scoring.scores?.security?.score,
+    performance: scoring.scores?.performance?.score,
+    test_coverage: scoring.scores?.test_coverage?.score,
+    readability: scoring.scores?.readability?.score,
     scanned_at: signals.scanned_at,
     scan_duration_ms: signals.scan_duration_ms,
     default_branch: signals.default_branch,
@@ -59,7 +59,7 @@ export async function generatePdf(
   };
 
   const factorsPayload = {
-    dimensions: scoring.factor_breakdown || scoring.dimensions,
+    dimensions: scoring.scores,
     verdict: scoring.verdict,
     warnings: scoring.warnings || [],
     signals: {
