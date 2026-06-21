@@ -1,0 +1,35 @@
+stages:
+  - build
+  - publish
+
+variables:
+  NPM_CONFIG_PREFIX: "${HOME}/.npm-global"
+  PATH: "${HOME}/.npm-global/bin:${PATH}"
+
+build:
+  stage: build
+  image: node:20-alpine
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 hour
+
+publish:
+  stage: publish
+  image: node:20-alpine
+  only:
+    - main
+  script:
+    - npm ci
+    - npm run build
+    - echo "Publishing @webileapps/scan to npm registry..."
+    - npm publish
+  after_script:
+    - |
+      if [ $? -eq 0 ]; then
+        VERSION=$(node -e "console.log(require('./package.json').version)")
+        echo "✅ Published @webileapps/scan@${VERSION}"
+      fi
