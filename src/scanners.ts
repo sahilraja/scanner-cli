@@ -13,16 +13,16 @@ import type {
   RouteSignals,
   DepSignals,
 } from "./types";
-import { scanRepoSchema } from "../../../src/lib/repo-schema-scan";
-import { scanRepoLayering } from "../../../src/lib/repo-layering-scan";
-import { scanRepoTestMap } from "../../../src/lib/repo-test-map-scan";
-import { scanRepoRoutes } from "../../../src/lib/repo-route-scan";
-import { scanRepoAst } from "../../../src/lib/repo-ast-scan";
-import { scanRepoContent } from "../../../src/lib/repo-content-rules";
-import { scanRepoDocs } from "../../../src/lib/repo-doc-scan";
-import { scanRepoArchitecture } from "../../../src/lib/repo-architecture-scan";
+import { scanRepoSchema } from "./lib/repo-schema-scan";
+import { scanRepoLayering } from "./lib/repo-layering-scan";
+import { scanRepoTestMap } from "./lib/repo-test-map-scan";
+import { scanRepoRoutes } from "./lib/repo-route-scan";
+import { scanRepoAst } from "./lib/repo-ast-scan";
+import { scanRepoContent } from "./lib/repo-content-rules";
+import { scanRepoDocs } from "./lib/repo-doc-scan";
+import { scanRepoArchitecture } from "./lib/repo-architecture-scan";
 // Module scan not exported from mr-analyzer, will use synthetic
-import type { ExtractedRepo } from "../../../src/lib/archive-walker";
+import type { ExtractedRepo } from "./lib/archive-walker";
 
 function getGitInfo(rootDir: string): { branch: string | null; commit: string | null; origin: string | null } {
   try {

@@ -14,10 +14,10 @@ import type {
   VulnRichSignals,
   ContentRichSignals,
   AstRichSignals,
-} from "../../../src/lib/scanners-export";
-import { buildProjectScanSummary } from "../../../src/lib/scanners-export";
-import { getFixHint, type FixHintSeverity } from "../../../src/lib/scanner-fix-hints";
-import type { SignalCategory, ScannerName } from "../../../src/lib/types";
+} from "./lib/scanners-export";
+import { buildProjectScanSummary } from "./lib/scanners-export";
+import { getFixHint, type FixHintSeverity } from "./lib/scanner-fix-hints";
+import type { SignalCategory, ScannerName } from "./lib/types";
 
 type jsPDFDoc = InstanceType<(typeof import("jspdf"))["jsPDF"]>;
 

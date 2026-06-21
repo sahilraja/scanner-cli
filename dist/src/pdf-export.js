@@ -40,8 +40,8 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.generatePdf = generatePdf;
-const scanners_export_1 = require("../../../src/lib/scanners-export");
-const scanner_fix_hints_1 = require("../../../src/lib/scanner-fix-hints");
+const scanners_export_1 = require("./lib/scanners-export");
+const scanner_fix_hints_1 = require("./lib/scanner-fix-hints");
 async function generatePdf(signals, scoring, languages) {
     const [{ jsPDF }, autoTableMod] = await Promise.all([
         Promise.resolve().then(() => __importStar(require("jspdf"))),

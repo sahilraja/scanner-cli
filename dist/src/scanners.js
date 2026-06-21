@@ -10,14 +10,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.runScanners = runScanners;
 const node_fs_1 = __importDefault(require("node:fs"));
 const node_path_1 = __importDefault(require("node:path"));
-const repo_schema_scan_1 = require("../../../src/lib/repo-schema-scan");
-const repo_layering_scan_1 = require("../../../src/lib/repo-layering-scan");
-const repo_test_map_scan_1 = require("../../../src/lib/repo-test-map-scan");
-const repo_route_scan_1 = require("../../../src/lib/repo-route-scan");
-const repo_ast_scan_1 = require("../../../src/lib/repo-ast-scan");
-const repo_content_rules_1 = require("../../../src/lib/repo-content-rules");
-const repo_doc_scan_1 = require("../../../src/lib/repo-doc-scan");
-const repo_architecture_scan_1 = require("../../../src/lib/repo-architecture-scan");
+const repo_schema_scan_1 = require("./lib/repo-schema-scan");
+const repo_layering_scan_1 = require("./lib/repo-layering-scan");
+const repo_test_map_scan_1 = require("./lib/repo-test-map-scan");
+const repo_route_scan_1 = require("./lib/repo-route-scan");
+const repo_ast_scan_1 = require("./lib/repo-ast-scan");
+const repo_content_rules_1 = require("./lib/repo-content-rules");
+const repo_doc_scan_1 = require("./lib/repo-doc-scan");
+const repo_architecture_scan_1 = require("./lib/repo-architecture-scan");
 function getGitInfo(rootDir) {
     try {
         const headPath = node_path_1.default.join(rootDir, ".git/HEAD");

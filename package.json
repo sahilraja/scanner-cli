@@ -21,13 +21,19 @@
     "registry": "https://git.webileapps.com/api/v4/projects/857/packages/npm/"
   },
   "dependencies": {
+    "adm-zip": "^0.5.17",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "nodemailer": "^6.9.16",
-    "pdfkit": "^0.15.0"
+    "pdfkit": "^0.15.0",
+    "tar": "^7.5.16",
+    "typescript": "^5.4.5"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
     "@types/node": "^20.14.0",
     "@types/nodemailer": "^6.4.16",
     "@types/pdfkit": "^0.13.4",
-    "typescript": "^5.4.5"
+    "@types/tar": "^6.1.13"
   }
 }
