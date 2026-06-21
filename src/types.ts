@@ -168,6 +168,8 @@ export type CliSignals = {
   docs?: any;
   architecture?: any;
   modules?: any;
+  db_schema?: any;
+  layering?: any;
 };
 
 // ── Scoring ────────────────────────────────────────────────────────────────
