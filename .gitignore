@@ -1,4 +1,28 @@
+# Build artifacts
 dist/
-node_modules/
-reports/
 *.tgz
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE & OS
+.DS_Store
+.vscode/
+.idea/
+
+# Reports & outputs
+reports/
+*.pdf
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+.claude/
+*.tmp
