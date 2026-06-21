@@ -152,9 +152,6 @@ export type CliSignals = {
   // ── Deep content scan ────────────────────────────────────────────────────
   content: ContentSignals | null;
 
-  // ── Route inventory ──────────────────────────────────────────────────────
-  routes: RouteSignals | null;
-
   // ── Dependency risk ──────────────────────────────────────────────────────
   deps: DepSignals | null;
 
@@ -170,6 +167,8 @@ export type CliSignals = {
   modules?: any;
   db_schema?: any;
   layering?: any;
+  test_map?: any;
+  routes?: any;
 };
 
 // ── Scoring ────────────────────────────────────────────────────────────────
