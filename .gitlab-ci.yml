@@ -25,6 +25,7 @@ publish:
   script:
     - npm ci
     - npm run build
+    - npm config set "//git.webileapps.com/api/v4/projects/857/packages/npm/:_authToken" "${NPM_PUBLISH_TOKEN}"
     - echo "Publishing @webileapps/scan to npm registry..."
     - npm publish
   after_script:
