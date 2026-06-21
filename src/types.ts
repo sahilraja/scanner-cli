@@ -161,6 +161,13 @@ export type CliSignals = {
   // ── ENV signals ──────────────────────────────────────────────────────────
   env_vars_used: number;
   env_vars_undocumented: number;
+
+  // ── Deep scanners ───────────────────────────────────────────────────────────
+  vulns?: any;
+  ast?: any;
+  docs?: any;
+  architecture?: any;
+  modules?: any;
 };
 
 // ── Scoring ────────────────────────────────────────────────────────────────
