@@ -14,10 +14,10 @@ import type {
   VulnRichSignals,
   ContentRichSignals,
   AstRichSignals,
-} from "@/lib/scanners-export";
-import { buildProjectScanSummary } from "@/lib/scanners-export";
-import { getFixHint, type FixHintSeverity } from "@/lib/scanner-fix-hints";
-import type { SignalCategory, ScannerName } from "@/lib/types";
+} from "../../../src/lib/scanners-export";
+import { buildProjectScanSummary } from "../../../src/lib/scanners-export";
+import { getFixHint, type FixHintSeverity } from "../../../src/lib/scanner-fix-hints";
+import type { SignalCategory, ScannerName } from "../../../src/lib/types";
 
 type jsPDFDoc = InstanceType<(typeof import("jspdf"))["jsPDF"]>;
 
@@ -177,14 +177,14 @@ export async function generatePdf(
   // Languages strip
   if (proj.languages && Object.keys(proj.languages).length > 0) {
     const langLineY = fileLineY + 14;
-    const totalLangFiles = Object.values(proj.languages).reduce(
-      (s, n) => s + (typeof n === "number" ? n : 0),
+    const totalLangFiles = Object.values(proj.languages || {}).reduce(
+      (s: number, n: any) => s + (typeof n === "number" ? n : 0),
       0
     );
-    const top = Object.entries(proj.languages)
-      .sort((a, b) => b[1] - a[1])
+    const top = Object.entries(proj.languages || {})
+      .sort((a: any, b: any) => (b[1] || 0) - (a[1] || 0))
       .slice(0, 4)
-      .map(([k, v]) => {
+      .map(([k, v]: any) => {
         const pct =
           totalLangFiles > 0 ? Math.round((v / totalLangFiles) * 100) : 0;
         return `${k} ${pct}%`;
@@ -716,7 +716,7 @@ function effectiveSeverity(
 ): { label: string; tone: Tone } {
   if (delta > 0.05) return { label: "STRENGTH", tone: "good" };
   const hint = getFixHint(scanner, attributeKey);
-  return { label: SEVERITY_LABEL[hint.severity], tone: SEVERITY_TONE[hint.severity] };
+  return { label: SEVERITY_LABEL[hint.severity] || "UNKNOWN", tone: SEVERITY_TONE[hint.severity] || "info" };
 }
 
 function gradeColor(grade: string | null): [number, number, number] {
@@ -929,15 +929,15 @@ function renderProjectDetailsPage(doc: any, autoTable: any, proj: ProjectScanSum
   if (proj.languages && Object.keys(proj.languages).length > 0) {
     if (cursor > pageHeight - 160) { doc.addPage(); cursor = 40; }
     cursor = drawSubSectionTitle(doc, 40, cursor, "Languages");
-    const totalLang = Object.values(proj.languages).reduce((s, n) => s + (typeof n === "number" ? n : 0), 0);
-    const langRows = Object.entries(proj.languages).sort((a, b) => b[1] - a[1]).map(([lang, n]) => [lang, String(n), totalLang > 0 ? `${Math.round((n / totalLang) * 100)}%` : "—"]);
+    const totalLang = Object.values(proj.languages || {}).reduce((s: number, n: any) => s + (typeof n === "number" ? n : 0), 0);
+    const langRows = Object.entries(proj.languages || {}).sort((a: any, b: any) => b[1] - a[1]).map(([lang, n]: any) => [lang, String(n), totalLang > 0 ? `${Math.round((n / totalLang) * 100)}%` : "—"]);
     autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["Language", "Files", "Share"]], body: langRows, columnStyles: { 0: { cellWidth: 200 }, 1: { cellWidth: 100, halign: "right" }, 2: { cellWidth: 100, halign: "right" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle) });
     cursor = lastTableY(doc, cursor) + 18;
   }
   if (proj.warnings && proj.warnings.length > 0) {
     if (cursor > pageHeight - 140) { doc.addPage(); cursor = 40; }
     cursor = drawSubSectionTitle(doc, 40, cursor, "Scan warnings");
-    autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["#", "Warning"]], body: proj.warnings.map((w, i) => [String(i + 1), w]), columnStyles: { 0: { cellWidth: 36, halign: "right" }, 1: { cellWidth: "auto" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle) });
+    autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["#", "Warning"]], body: proj.warnings.map((w: any, i: number) => [String(i + 1), w]), columnStyles: { 0: { cellWidth: 36, halign: "right" }, 1: { cellWidth: "auto" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle) });
   }
 }
 
@@ -950,7 +950,7 @@ function renderArchitecturePage(doc: any, autoTable: any, arch: ArchitectureRich
   if (arch.convention_rules.length > 0) {
     if (cursor > pageHeight - 140) { doc.addPage(); cursor = 40; }
     cursor = drawSubSectionTitle(doc, 40, cursor, `Convention rules (${arch.convention_rules.length})`);
-    autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["Type", "Rule"]], body: arch.convention_rules.map((r) => [r.type, r.raw]), columnStyles: { 0: { cellWidth: 160 }, 1: { cellWidth: "auto" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle) });
+    autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["Type", "Rule"]], body: arch.convention_rules.map((r: any) => [r.type, r.raw]), columnStyles: { 0: { cellWidth: 160 }, 1: { cellWidth: "auto" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle) });
   }
 }
 
@@ -982,13 +982,13 @@ function renderVulnsPage(doc: any, autoTable: any, vulns: VulnRichSignals, pageW
   if (vulns.lockfiles.length > 0) {
     if (cursor > pageHeight - 140) { doc.addPage(); cursor = 40; }
     cursor = drawSubSectionTitle(doc, 40, cursor, "Lockfiles parsed");
-    autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["Ecosystem", "Lockfile", "Packages"]], body: vulns.lockfiles.map((l) => [l.ecosystem, l.lockfile, String(l.package_count)]), columnStyles: { 0: { cellWidth: 100 }, 1: { cellWidth: "auto" }, 2: { cellWidth: 100, halign: "right" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle) });
+    autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["Ecosystem", "Lockfile", "Packages"]], body: vulns.lockfiles.map((l: any) => [l.ecosystem, l.lockfile, String(l.package_count)]), columnStyles: { 0: { cellWidth: 100 }, 1: { cellWidth: "auto" }, 2: { cellWidth: 100, halign: "right" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle) });
     cursor = lastTableY(doc, cursor) + 18;
   }
   if (vulns.findings.length > 0) {
     if (cursor > pageHeight - 160) { doc.addPage(); cursor = 40; }
     cursor = drawSubSectionTitle(doc, 40, cursor, `Findings (${vulns.findings.length})`);
-    autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["Severity", "Package", "Version", "Ecosystem", "Advisory", "Range", "Summary"]], body: vulns.findings.map((f) => [f.advisory.severity, f.package, f.version, f.ecosystem, f.advisory.id, f.advisory.range, f.advisory.summary]), columnStyles: { 0: { cellWidth: 60, halign: "center" }, 1: { cellWidth: 130 }, 2: { cellWidth: 70 }, 3: { cellWidth: 70 }, 4: { cellWidth: 110 }, 5: { cellWidth: 90 }, 6: { cellWidth: "auto" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle), didParseCell: (data: any) => { if (data.section !== "body" || data.column.index !== 0) return; applyTone(data, vulnSeverityTone(String(data.cell.raw).toLowerCase())); } });
+    autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["Severity", "Package", "Version", "Ecosystem", "Advisory", "Range", "Summary"]], body: vulns.findings.map((f: any) => [f.advisory.severity, f.package, f.version, f.ecosystem, f.advisory.id, f.advisory.range, f.advisory.summary]), columnStyles: { 0: { cellWidth: 60, halign: "center" }, 1: { cellWidth: 130 }, 2: { cellWidth: 70 }, 3: { cellWidth: 70 }, 4: { cellWidth: 110 }, 5: { cellWidth: 90 }, 6: { cellWidth: "auto" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle), didParseCell: (data: any) => { if (data.section !== "body" || data.column.index !== 0) return; applyTone(data, vulnSeverityTone(String(data.cell.raw).toLowerCase())); } });
   }
 }
 
@@ -998,7 +998,7 @@ function renderContentFindingsPage(doc: any, autoTable: any, content: ContentRic
   cursor = drawSubSectionTitle(doc, 40, cursor, "LOC distribution");
   autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["Metric", "Value"]], body: [["Total lines of code", content.loc.total.toLocaleString()], ["Median file LOC", String(content.loc.median)], ["P95 file LOC", String(content.loc.p95)], ["Very long files (>500 LOC)", String(content.loc.very_long)], ["Files scanned", String(content.files_scanned)]], columnStyles: { 0: { cellWidth: 240 }, 1: { cellWidth: 160, halign: "right" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle) });
   cursor = lastTableY(doc, cursor) + 18;
-  const byRule = Object.entries(content.totals.by_rule).sort((a, b) => b[1] - a[1]);
+  const byRule = Object.entries(content.totals.by_rule as any).sort((a: any, b: any) => b[1] - a[1]);
   if (byRule.length > 0) {
     if (cursor > pageHeight - 160) { doc.addPage(); cursor = 40; }
     cursor = drawSubSectionTitle(doc, 40, cursor, `Hits by rule (${byRule.length})`);
@@ -1008,13 +1008,13 @@ function renderContentFindingsPage(doc: any, autoTable: any, content: ContentRic
   if (content.hits.length > 0) {
     if (cursor > pageHeight - 160) { doc.addPage(); cursor = 40; }
     cursor = drawSubSectionTitle(doc, 40, cursor, `Findings (${content.hits.length})`);
-    autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["Severity", "File", "Line", "Title", "Evidence"]], body: content.hits.map((h) => [h.severity, h.file, String(h.line), h.title, trimEvidence(h.evidence, 300)]), styles: { fontSize: 8.5, cellPadding: 4, overflow: "linebreak", valign: "top" }, columnStyles: { 0: { cellWidth: 60, halign: "center" }, 1: { cellWidth: 200 }, 2: { cellWidth: 40, halign: "right" }, 3: { cellWidth: 200 }, 4: { cellWidth: "auto" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle), didParseCell: (data: any) => { if (data.section !== "body" || data.column.index !== 0) return; const sev = String(data.cell.raw).toLowerCase(); applyTone(data, sev === "critical" ? "bad" : sev === "warning" ? "warn" : "info"); } });
+    autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["Severity", "File", "Line", "Title", "Evidence"]], body: content.hits.map((h: any) => [h.severity, h.file, String(h.line), h.title, trimEvidence(h.evidence, 300)]), styles: { fontSize: 8.5, cellPadding: 4, overflow: "linebreak", valign: "top" }, columnStyles: { 0: { cellWidth: 60, halign: "center" }, 1: { cellWidth: 200 }, 2: { cellWidth: 40, halign: "right" }, 3: { cellWidth: 200 }, 4: { cellWidth: "auto" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle), didParseCell: (data: any) => { if (data.section !== "body" || data.column.index !== 0) return; const sev = String(data.cell.raw).toLowerCase(); applyTone(data, sev === "critical" ? "bad" : sev === "warning" ? "warn" : "info"); } });
     cursor = lastTableY(doc, cursor) + 18;
   }
   if (content.longest_files.length > 0) {
     if (cursor > pageHeight - 160) { doc.addPage(); cursor = 40; }
     cursor = drawSubSectionTitle(doc, 40, cursor, `Longest files (${content.longest_files.length})`);
-    autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["#", "File", "Lines"]], body: content.longest_files.map((f, i) => [String(i + 1), f.file, String(f.lines)]), columnStyles: { 0: { cellWidth: 36, halign: "right" }, 1: { cellWidth: "auto" }, 2: { cellWidth: 80, halign: "right" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle) });
+    autoTable(doc, { ...KV_TABLE_STYLES, startY: cursor, margin: { left: 40, right: 40 }, head: [["#", "File", "Lines"]], body: content.longest_files.map((f: any, i: number) => [String(i + 1), f.file, String(f.lines)]), columnStyles: { 0: { cellWidth: 36, halign: "right" }, 1: { cellWidth: "auto" }, 2: { cellWidth: 80, halign: "right" } }, didDrawPage: () => setFooter(doc, pageWidth, pageHeight, projectTitle) });
   }
 }
 

@@ -26,15 +26,17 @@ export function computeScores(signals: CliSignals & any): ScoringResult {
   const grade = scoreToGrade(avgDim);
   const verdict = scoreToVerdict(avgDim);
 
+  const entries = Object.entries(dimensions).sort(
+    ([, a], [, b]) => a.score - b.score
+  );
+
   return {
     scores: dimensions,
     avg_dim: avgDim,
     health_score: healthScore,
     grade,
     verdict,
-    worst_dimension: Object.entries(dimensions).sort(
-      ([, a], [, b]) => a.score - b.score
-    )[0][0] as keyof typeof dimensions,
+    worst_dimension: (entries[0]?.[0] || 'code_quality') as keyof typeof dimensions,
     factor_breakdown: dimensions,
     warnings: [],
     attributes: [],
