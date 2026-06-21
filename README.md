@@ -1,93 +1,195 @@
-# scanner
+# scanner-cli
 
+CLI tool that scans a local project directory and generates a PDF health report — covering code quality, security, test coverage, architecture, and more — with optional email and Google Chat notifications.
 
+## What it does
 
-## Getting started
+Point it at a project directory and it will:
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://git.webileapps.com/webileapps/ai-native-delivery/scanner.git
-git branch -M main
-git push -uf origin main
-```
-
-## Integrate with your tools
-
-* [Set up project integrations](https://git.webileapps.com/webileapps/ai-native-delivery/scanner/-/settings/integrations)
-
-## Collaborate with your team
-
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
-
-## Test and Deploy
-
-Use the built-in continuous integration in GitLab.
-
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+- Walk the codebase and run a set of scanners (architecture, AST/code quality, layering, routes, schema, docs, test coverage, content rules)
+- Compute an overall health score (0–100) and letter grade
+- Generate a PDF report (`health-report-<project>-<date>.pdf` plus a `health-report.pdf` "latest" copy)
+- Optionally cross-check coverage against FRD/spec markdown files
+- Optionally email the report and/or post a summary to Google Chat
+- Optionally fail the run (non-zero exit code) if the score drops below a threshold — handy as a CI gate
 
 ## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+
+This package is published to two registries. Use whichever your project/team already has configured — they contain identical code.
+
+### Option A — GitLab (primary)
+
+Add to your project's `.npmrc`:
+
+```
+@webileapps:registry=https://git.webileapps.com/api/v4/projects/857/packages/npm/
+//git.webileapps.com/api/v4/projects/857/packages/npm/:_authToken=${GITLAB_DEPLOY_TOKEN}
+```
+
+Then install:
+
+```
+npm install -g @webileapps/scan
+```
+
+### Option B — GitHub Packages (secondary)
+
+Add to your project's `.npmrc`:
+
+```
+@sahilraja:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+`GITHUB_TOKEN` needs at least `read:packages` scope (create one at github.com/settings/tokens — GitHub Packages requires auth even for public packages).
+
+Then install:
+
+```
+npm install -g @sahilraja/scan
+```
+
+### Without installing
+
+```
+npx @webileapps/scan
+# or
+npx @sahilraja/scan
+```
 
 ## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```
+scan [directory] [options]
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+If `directory` is omitted, it scans the current working directory.
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+| Flag | Description |
+| --- | --- |
+| `--watch`, `-w` | Watch mode — scans immediately, then rescans on file changes (polls every 8s) |
+| `--once` | Run a single scan and exit (default behavior when no flag is given) |
+| `--ci` | CI mode — single scan, always sends notifications regardless of detected CI |
+| `--no-notify` | Skip email / Google Chat notifications for this run |
+| `--fail-below <n>` | Exit with code `2` if the health score is below `n` |
+| `--report-dir <path>` | Write the PDF report to a custom directory |
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+Examples:
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+```
+scan                          # scan current directory, write reports/ here
+scan ../my-app                # scan a different project
+scan --watch                  # rescan on every file save
+scan --ci --fail-below 60     # CI gate: fail the pipeline below score 60
+scan --no-notify              # generate the PDF only, skip notifications
+```
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+### Output
 
-## License
-For open source projects, say how it is licensed.
+By default the PDF report is written to `reports/` inside the scanned directory:
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+```
+<project>/reports/health-report-<project>-<YYYY-MM-DD>.pdf
+<project>/reports/health-report.pdf   (always the latest run)
+```
+
+Exit codes: `0` success, `1` fatal error (e.g. directory not found), `2` health score below `--fail-below` threshold.
+
+## Configuration
+
+Optional — create a `scan.config.json` in the root of the project being scanned. If omitted, sensible defaults are used.
+
+```json
+{
+  "name": "My Project",
+  "description": "Short description shown in the PDF header",
+
+  "gitlab": {
+    "baseUrl": "https://git.webileapps.com",
+    "projectId": 123,
+    "token": "${GITLAB_TOKEN}"
+  },
+
+  "frd": {
+    "dir": "specs",
+    "pattern": "**/*.md"
+  },
+
+  "notify": {
+    "email": {
+      "from": "scanner@webileapps.com",
+      "extraRecipients": ["cto@webileapps.com"],
+      "smtp": {
+        "host": "${SMTP_HOST}",
+        "port": 587,
+        "user": "${SMTP_USER}",
+        "pass": "${SMTP_PASS}"
+      }
+    },
+    "googleChat": {
+      "webhookUrl": "${GOOGLE_CHAT_WEBHOOK}"
+    }
+  },
+
+  "scan": {
+    "exclude": ["node_modules", "dist", "build", ".git", ".next", "coverage"],
+    "reportDir": "reports",
+    "maxFileSizeBytes": 524288,
+    "failBelow": 50
+  }
+}
+```
+
+Notes:
+
+- Any `${VAR_NAME}` value is resolved from environment variables at runtime — don't commit real secrets into `scan.config.json`.
+- `gitlab` config (optional) is used to resolve notification recipients from GitLab project members.
+- `frd.dir` (optional) points at a folder of markdown spec files; the scanner checks how much of each spec is reflected in the codebase and reports coverage.
+- `notify.email` / `notify.googleChat` are both optional — omit either (or both) to disable that channel. See [`scan.config.example.json`](./scan.config.example.json) for the full template.
+
+## Using it as a CI gate
+
+In your project's CI pipeline (GitLab CI shown, but any CI works the same way):
+
+```yaml
+health-scan:
+  stage: test
+  script:
+    - npm install -g @webileapps/scan
+    - scan . --ci --fail-below 60
+  artifacts:
+    paths:
+      - reports/
+```
+
+See [`ci-template.yml`](./ci-template.yml) for a copy-paste starting point.
+
+## Development
+
+```
+git clone git@github.com:sahilraja/scanner-cli.git
+cd scanner-cli
+npm install
+npm run build      # compiles TypeScript to dist/
+npm run dev         # tsc --watch
+npm start           # node dist/bin/scan.js
+```
+
+Run it against a project locally without publishing:
+
+```
+npm run build
+node dist/bin/scan.js /path/to/some/project
+```
+
+## Publishing
+
+- **GitLab (primary):** handled by `.gitlab-ci.yml` — pushes to the default branch / tags publish to `@webileapps/scan` on the GitLab npm registry.
+- **GitHub Packages (secondary):** handled by `.github/workflows/publish.yml` — triggered by pushing a `v*.*.*` tag or publishing a GitHub Release. Publishes the same code as `@sahilraja/scan` to `npm.pkg.github.com`. The committed `package.json` always stays GitLab-scoped; the GitHub workflow rescopes the package name in CI only, so nothing in this repo needs to change to support both registries.
+
+To cut a new GitHub Packages release:
+
+```
+git tag v1.0.x
+git push github v1.0.x
+```
